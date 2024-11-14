@@ -29,6 +29,23 @@ class HookLangfuseCallbackTestCase(base.BaseTestCase):
         trace_id = trace.id if trace else None
         logger.info("trace_id = %s", trace_id)
         assert trace_id
+        tr = langfuse_handler.langfuse.get_trace(trace_id)
+        assert tr
+
+        assert tr.input == query
+        assert tr.output == r
+
+        assert tr.observations
+        assert len(tr.observations) > 0
+        obs = tr.observations[0]
+        assert obs
+        assert obs.usage
+
+        logger.info(obs.usage)
+
+        assert obs.usage.input > 0
+        assert obs.usage.output > 0
+        assert obs.usage.total > 0
         logger.info("完成!")
 
 
