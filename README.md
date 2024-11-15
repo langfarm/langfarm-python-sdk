@@ -4,6 +4,10 @@ langfarm 是 LLM 应用程序开发的工具集，增加 LLM 应用开发的便�
 
 # Tongyi 集成 Langfuse
 
+## 准备：本地安装部署 Langfuse
+
+请参考：[Langfuse 快速开始](http://chenlb.com/llm/langfuse/getting-started.html)
+
 ## 使用 Langchain 的 Callback
 
 使用示例
@@ -27,6 +31,7 @@ result = llm.invoke(query, config={"callbacks": [langfuse_handler]})
 print(result)
 print("等待 5 秒，等待 langfuse 异步上报。")
 time.sleep(5)
+print("完成！")
 ```
 
 然后打开 langfuse 界面查看，http://localhost:3000/
