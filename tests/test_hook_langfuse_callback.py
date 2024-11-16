@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 import unittest
 
@@ -15,7 +16,7 @@ class HookLangfuseCallbackTestCase(base.BaseTestCase):
 
     def test_use_tongyi_with_langfuse_callback(self):
         query = '请用50个字描写春天的景色。'
-        llm = Tongyi(model="qwen-plus")
+        llm = Tongyi(model="qwen-plus", api_key=os.getenv("DASHSCOPE_API_KEY"))
         # base.BaseTestCase 的 setUpClass() 使用 load_dotenv() 加载了 .env 配置
         # LANGFUSE_PUBLIC_KEY
         # LANGFUSE_SECRET_KEY
@@ -24,15 +25,17 @@ class HookLangfuseCallbackTestCase(base.BaseTestCase):
         langfuse_handler = CallbackHandler()
         r = llm.invoke(query, config={"callbacks": [langfuse_handler]})
         logger.info("Tongyi 输出 -> %s", r)
-        s = 5
+        s = 2
         logger.info("等待 %d 秒，等待 langfuse 异步上报。", s)
         time.sleep(s)
         trace = langfuse_handler.trace
         trace_id = trace.id if trace else None
         logger.info("trace_id = %s", trace_id)
         assert trace_id
-        tr = langfuse_handler.langfuse.get_trace(trace_id)
+        tr = langfuse_handler.langfuse.fetch_trace(trace_id)
         assert tr
+        assert tr.data
+        tr = tr.data
 
         assert tr.input == query
         assert tr.output == r
@@ -52,7 +55,7 @@ class HookLangfuseCallbackTestCase(base.BaseTestCase):
 
     def test_use_tongyi_stream_with_langfuse_callback(self):
         query = '请用200个字描写春天的景色。'
-        llm: BaseLLM = Tongyi(model="qwen-turbo")
+        llm: BaseLLM = Tongyi(model="qwen-turbo", api_key=os.getenv("DASHSCOPE_API_KEY"))
         langfuse_handler = CallbackHandler(trace_name="Tongyi-stream")
         chunks = llm.stream(query, config={"callbacks": [langfuse_handler]})
         output_chunk = []
@@ -63,7 +66,7 @@ class HookLangfuseCallbackTestCase(base.BaseTestCase):
         output = "".join(output_chunk)
         logger.info("chunks => %s", output)
 
-        s = 5
+        s = 2
         logger.info("等待 %d 秒，等待 langfuse 异步上报。", s)
         time.sleep(s)
 
@@ -71,8 +74,10 @@ class HookLangfuseCallbackTestCase(base.BaseTestCase):
         trace_id = trace.id if trace else None
         logger.info("trace_id = %s", trace_id)
         assert trace_id
-        tr = langfuse_handler.langfuse.get_trace(trace_id)
+        tr = langfuse_handler.langfuse.fetch_trace(trace_id)
         assert tr
+        assert tr.data
+        tr = tr.data
 
         assert tr.input == query
         assert tr.output == output
