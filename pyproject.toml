@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "langfarm"
-version = "0.1.0"
+version = "0.1.1"
 description = "LLM 相关工具集"
 authors = ["chenlb <chenlbphoto@163.com>"]
 license = "MIT"
@@ -17,6 +17,7 @@ dashscope = "^1.20.12"
 pytest = "^8.3.3"
 coverage = "^7.6.4"
 pyyaml = "^6.0.2"
+python-dotenv = "^1.0.1"
 
 [[tool.poetry.source]]
 name = "aliyun-pypi"
