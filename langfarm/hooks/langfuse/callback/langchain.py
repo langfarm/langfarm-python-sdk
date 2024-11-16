@@ -1,10 +1,21 @@
 import logging
 
-from langchain_core.outputs import LLMResult
 from langfuse.callback import langchain as langfuse_callback
 from langfuse.callback.langchain import LangchainCallbackHandler
 
 logger = logging.getLogger(__name__)
+
+try:
+    import langchain_core
+except ImportError:
+    raise ModuleNotFoundError(
+        "Please install langchain core to use this feature: 'pip install langchain-core'"
+    )
+
+try:
+    from langchain_core.outputs import LLMResult
+except ImportError:
+    LLMResult = None
 
 
 def _hook_parse_usage(func):
