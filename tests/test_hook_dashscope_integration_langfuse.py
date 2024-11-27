@@ -111,7 +111,7 @@ class HookDashscopeTestCase(BaseTestCase):
                 output += chunk_output
             else:
                 output = chunk_output
-            logger.info("chunk => %s", chunk_output)
+            logger.info("chunk usage=%s, out => %s", chunk.usage, chunk_output)
 
         langfuse_context.update_current_trace(output=output)
 
