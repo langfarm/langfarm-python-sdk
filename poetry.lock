@@ -2199,4 +2199,4 @@ reference = "aliyun-pypi"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "ab7f0cf3178d6edfa73840eee162e1923f03f32907ba5cb596f38c15877a9693"
+content-hash = "cc165c232ef2a184d3a6760ea434c55f3d6f14a6921c8930a6500e33dd87457a"
