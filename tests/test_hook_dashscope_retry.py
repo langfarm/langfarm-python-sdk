@@ -1,11 +1,16 @@
+import json
 import logging
 import os
 import unittest
 from typing import Any, List, Union, Dict, Generator
 
 from dashscope.api_entities.dashscope_response import Message, GenerationResponse, GenerationUsage, GenerationOutput
+from langfuse import Langfuse
+from langfuse.api import Observation, ObservationLevel
+from langfuse.client import FetchTraceResponse
 from langfuse.decorators import observe, langfuse_context
 from tenacity import stop_after_attempt, retry, wait_fixed, before_sleep_log, wait_random
+from langfuse.callback import CallbackHandler
 
 from langfarm.hooks.dashscope import Generation
 from tests.base import BaseTestCase
@@ -60,7 +65,20 @@ class MockErrorGeneration(Generation):
         )
         return response
 
+
 class MyTestCase(BaseTestCase):
+
+    langfuse_sdk: Langfuse = None
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.langfuse_sdk = Langfuse()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        cls.langfuse_sdk.shutdown()
 
     def setUp(self):
         self.cnt = 0
@@ -115,6 +133,22 @@ class MyTestCase(BaseTestCase):
         )
         langfuse_context.flush()
 
+        trace_id = langfuse_context.get_current_trace_id()
+        trace: FetchTraceResponse = self.langfuse_sdk.fetch_trace(trace_id)
+        # print(trace)
+        observations = trace.data.observations
+        assert observations
+        assert len(observations) > 0
+        obs = observations[0]
+        assert obs
+        assert obs.metadata
+        assert obs.level == ObservationLevel.DEFAULT
+        assert 'retry_cnt' in obs.metadata
+        assert obs.metadata['retry_cnt'] == 2
+        assert 'idle_second' in obs.metadata
+        assert obs.metadata['idle_second'] >= 2
+        assert 'max_retries' in obs.metadata
+
     @observe()
     def test_dashscope_no_retry(self):
         MockGeneration.max_fail_cnt = 1
@@ -127,6 +161,17 @@ class MyTestCase(BaseTestCase):
         )
         langfuse_context.flush()
 
+        trace_id = langfuse_context.get_current_trace_id()
+        trace: FetchTraceResponse = self.langfuse_sdk.fetch_trace(trace_id)
+        # print(trace)
+        observations = trace.data.observations
+        assert observations
+        assert len(observations) > 0
+        obs = observations[0]
+        assert obs
+        assert obs.metadata is None
+        assert obs.level == ObservationLevel.DEFAULT
+
     @observe()
     def test_dashscope_over_max_retry(self):
         MockGeneration.max_fail_cnt = 4
@@ -138,6 +183,32 @@ class MyTestCase(BaseTestCase):
             input=query, output=output
         )
         langfuse_context.flush()
+
+        trace_id = langfuse_context.get_current_trace_id()
+        trace: FetchTraceResponse = self.langfuse_sdk.fetch_trace(trace_id)
+        # print(trace)
+        observations = trace.data.observations
+        assert observations
+        assert len(observations) > 0
+        obs = observations[0]
+        assert obs
+        assert obs.metadata
+        assert obs.level == ObservationLevel.WARNING
+        assert 'retry_cnt' in obs.metadata
+        assert obs.metadata['retry_cnt'] == 2
+        assert 'idle_second' in obs.metadata
+        assert obs.metadata['idle_second'] >= 2
+        assert 'max_retries' in obs.metadata
+
+        # status_message
+        assert obs.status_message
+        msg = json.loads(obs.status_message)
+        assert msg
+        assert 'status_code' in msg
+        assert msg['status_code'] == 429
+        assert 'err_code' in msg
+        assert msg['err_code'] == 'RateLimit'
+        assert 'err_msg' in msg
 
     @observe(as_type="generation")
     def tongyi_fail_gen(self, query: str, model_name: str, max_retries: int = 10) -> str:
@@ -166,6 +237,27 @@ class MyTestCase(BaseTestCase):
             input=query, output=output
         )
         langfuse_context.flush()
+
+        trace_id = langfuse_context.get_current_trace_id()
+        trace: FetchTraceResponse = self.langfuse_sdk.fetch_trace(trace_id)
+        print(trace)
+        observations = trace.data.observations
+        assert observations
+        assert len(observations) > 0
+        obs = observations[0]
+        assert obs
+        assert obs.metadata is None
+        assert obs.level == ObservationLevel.ERROR
+
+        # status_message
+        assert obs.status_message
+        msg = json.loads(obs.status_message)
+        assert msg
+        assert 'status_code' in msg
+        assert msg['status_code'] == 400
+        assert 'err_code' in msg
+        assert msg['err_code'] == 'BadRequest'
+        assert 'err_msg' in msg
 
 
 if __name__ == '__main__':
