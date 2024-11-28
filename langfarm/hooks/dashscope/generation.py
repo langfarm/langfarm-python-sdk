@@ -61,7 +61,10 @@ class Generation(TongyiGeneration):
         return output
 
     @classmethod
-    def _up_generation_observation(cls, model: str, input_query: str, output: str, usage: dict):
+    def _up_generation_observation(
+            cls, model: str, input_query: str, output: str, usage: dict
+            , **kwargs
+    ):
         # 解释 token usage
         langfuse_context.update_current_observation(
             name="Dashscope-generation", model=model
@@ -71,12 +74,29 @@ class Generation(TongyiGeneration):
                 , "output": usage['output_tokens']
                 , "unit": "TOKENS"
             }
+            , **kwargs
         )
 
     @classmethod
-    def _up_general_generation_observation(cls, input_query: Any, model: str, result_format: str, response: GenerationResponse):
-        output = cls.response_to_output(result_format, response)
-        cls._up_generation_observation(model, input_query, output, response.usage)
+    def _up_general_generation_observation(
+            cls, input_query: Any, model: str, result_format: str, response: GenerationResponse
+            , retry_meta: dict
+    ):
+        metadata = None
+        level = None
+        if retry_meta:
+            # 追加 retry 相关 meta
+            metadata = {**retry_meta}
+            # 有 retry 按 warn 算
+            level = 'WARNING'
+        if response.status_code == 200:
+            output = cls.response_to_output(result_format, response)
+            cls._up_generation_observation(
+                model, input_query, output, response.usage
+                , level=level, metadata=metadata
+            )
+        else:
+            cls._up_error_observation(input_query, model, response, metadata)
 
     @classmethod
     def _up_stream_generation_observation(
@@ -107,23 +127,28 @@ class Generation(TongyiGeneration):
         cls._up_generation_observation(model, input_query, output, last_usage)
 
     @classmethod
-    def _up_error_observation(cls, input_query: Any, model: str, response: GenerationResponse):
-        level = 'WARNING' if response.status_code == 429 else 'ERROR'
+    def _up_error_observation(cls, input_query: Any, model: str, response: GenerationResponse, metadata: dict = None):
+        level = 'ERROR'
+        err_meta = {
+            'status_code': response.status_code
+            , 'err_code': response.code
+        }
+        if metadata:
+            err_meta.update(metadata)
         langfuse_context.update_current_observation(
             name="Dashscope-generation", model=model
             , input=input_query, output=None
             , level=level
-            , status_message=json.dumps({
-                'status_code': response.status_code
-                , 'err_code': response.code
-                , 'err_msg': response.message
-            }, ensure_ascii=False)
+            , status_message=response.message
+            , metadata=err_meta
         )
 
     @classmethod
-    def _do_call(cls, model: str, prompt: Any = None, history: list = None, api_key: str = None,
-             messages: List[Message] = None, plugins: Union[str, Dict[str, Any]] = None, workspace: str = None,
-             **kwargs) -> Union[GenerationResponse, Generator[GenerationResponse, None, None]]:
+    def _do_call(
+        cls, model: str, prompt: Any = None, history: list = None, api_key: str = None
+        , messages: List[Message] = None, plugins: Union[str, Dict[str, Any]] = None, workspace: str = None
+        , **kwargs
+    ) -> Union[GenerationResponse, Generator[GenerationResponse, None, None]]:
 
         response = super().call(model, prompt, history, api_key, messages, plugins, workspace, **kwargs)
 
@@ -148,20 +173,20 @@ class Generation(TongyiGeneration):
             )
 
     @classmethod
-    def _up_retry_stat_to_observation(cls, max_retries: int, retry_stat: dict):
+    def _retry_stat_meta(cls, max_retries: int, retry_stat: dict) -> dict:
+        retry_meta = None
         if 'attempt_number' in retry_stat:
             retry_cnt = retry_stat['attempt_number']
             if retry_cnt > 1:
-                langfuse_context.update_current_observation(
-                    metadata={
-                        'retry_cnt': retry_cnt - 1
-                        , 'idle_second': retry_stat['idle_for']
-                        , 'max_retries': max_retries
-                    }
-                )
+                retry_meta = {
+                    'run_cnt': retry_cnt
+                    , 'idle_second': retry_stat['idle_for']
+                    , 'max_retries': max_retries
+                }
+        return retry_meta
 
     @classmethod
-    def generate_with_retry(cls, max_retries: int, **kwargs: Any) -> GenerationResponse:
+    def generate_with_retry(cls, max_retries: int, **kwargs: Any) -> (GenerationResponse, dict):
         """Use tenacity to retry the completion call."""
         retry_decorator = _create_retry_decorator(max_retries)
 
@@ -177,8 +202,7 @@ class Generation(TongyiGeneration):
 
         # 记录重试信息
         retry_stat = _generate_with_retry.statistics
-        cls._up_retry_stat_to_observation(max_retries, retry_stat)
-        return response
+        return response, cls._retry_stat_meta(max_retries, retry_stat)
 
     @classmethod
     def stream_generate_with_retry(cls, max_retries: int, **kwargs: Any) -> Generator[GenerationResponse, None, None]:
@@ -194,9 +218,11 @@ class Generation(TongyiGeneration):
         return _stream_generate_with_retry(**kwargs)
 
     @classmethod
-    def call(cls, model: str, prompt: Any = None, history: list = None, api_key: str = None,
-             messages: List[Message] = None, plugins: Union[str, Dict[str, Any]] = None, workspace: str = None,
-             **kwargs) -> Union[GenerationResponse, Generator[GenerationResponse, None, None]]:
+    def call(
+        cls, model: str, prompt: Any = None, history: list = None, api_key: str = None
+        , messages: List[Message] = None, plugins: Union[str, Dict[str, Any]] = None, workspace: str = None
+        , **kwargs
+    ) -> Union[GenerationResponse, Generator[GenerationResponse, None, None]]:
 
         # input
         input_query = None
@@ -221,15 +247,11 @@ class Generation(TongyiGeneration):
             )
             return cls._up_stream_generation_observation(input_query, model, result_format, response, incremental_output)
         else:
-            response = cls.generate_with_retry(
+            response, retry_stat = cls.generate_with_retry(
                 max_retries
                 , model=model, prompt=prompt, history=history, api_key=api_key, messages=messages
                 , plugins=plugins, workspace=workspace
                 , **kwargs
             )
-            if response.status_code == 200:
-                cls._up_general_generation_observation(input_query, model, result_format, response)
-            else:
-                cls._up_error_observation(input_query, model, response)
-
-        return response
+            cls._up_general_generation_observation(input_query, model, result_format, response, retry_stat)
+            return response
