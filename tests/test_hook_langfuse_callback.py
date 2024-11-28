@@ -27,6 +27,7 @@ class HookLangfuseCallbackTestCase(base.BaseTestCase):
         logger.info("Tongyi 输出 -> %s", r)
         s = 2
         logger.info("等待 %d 秒，等待 langfuse 异步上报。", s)
+        langfuse_handler.flush()
         time.sleep(s)
         trace = langfuse_handler.trace
         trace_id = trace.id if trace else None
@@ -46,11 +47,18 @@ class HookLangfuseCallbackTestCase(base.BaseTestCase):
         assert obs
         assert obs.usage
 
-        logger.info(obs.usage)
+        logger.info('observation.usage=%s', obs.usage)
 
         assert obs.usage.input > 0
         assert obs.usage.output > 0
         assert obs.usage.total > 0
+
+        usage = langfuse_handler.get_usage()
+        assert usage
+        logger.info('get_usage=%s', usage)
+        assert obs.usage.input == usage['input']
+        assert obs.usage.output == usage['output']
+        assert obs.usage.total == usage['total_tokens']
         logger.info("完成!")
 
     def test_use_tongyi_stream_with_langfuse_callback(self):
