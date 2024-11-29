@@ -1,5 +1,7 @@
 import json
 import logging
+import time
+from datetime import datetime
 from typing import Any, List, Union, Dict, Generator, Callable
 
 from langfuse.decorators import langfuse_context
@@ -104,10 +106,14 @@ class Generation(TongyiGeneration):
             , response: Generator[GenerationResponse, None, None], incremental_output: bool = False
     ) -> Generator[GenerationResponse, None, None]:
         last_usage = None
+        is_first = True
         output = ''
 
         is_inc = incremental_output
         for chunk in response:
+            if is_first:
+                langfuse_context.update_current_observation(completion_start_time=datetime.now())
+                is_first = False
             last_usage = chunk.usage
             chunk_output = cls.response_to_output(result_format, chunk)
             if is_inc:
