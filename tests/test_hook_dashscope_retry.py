@@ -4,14 +4,13 @@ import unittest
 from typing import Any, List, Union, Dict, Generator
 
 from dashscope.api_entities.dashscope_response import Message, GenerationResponse, GenerationUsage, GenerationOutput
-from langfuse import Langfuse
 from langfuse.api import ObservationLevel
 from langfuse.client import FetchTraceResponse
 from langfuse.decorators import observe, langfuse_context
 from tenacity import stop_after_attempt, retry, wait_fixed, before_sleep_log, wait_random
 
 from langfarm.hooks.dashscope import Generation
-from tests.base import BaseTestCase
+from tests.base import LangfuseSDKTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -64,21 +63,10 @@ class MockErrorGeneration(Generation):
         return response
 
 
-class MyTestCase(BaseTestCase):
-
-    langfuse_sdk: Langfuse = None
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.langfuse_sdk = Langfuse()
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        cls.langfuse_sdk.shutdown()
+class MyTestCase(LangfuseSDKTestCase):
 
     def setUp(self):
+        super().setUp()
         self.cnt = 0
         MockGeneration._reset_fail_cnt()
 

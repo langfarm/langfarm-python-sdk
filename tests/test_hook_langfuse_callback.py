@@ -7,12 +7,12 @@ from langchain_community.llms import Tongyi
 from langchain_core.language_models import BaseLLM
 
 from langfarm.hooks.langfuse.callback import CallbackHandler
-from tests import base
+from tests.base import BaseTestCase
 
 logger = logging.getLogger(__name__)
 
 
-class HookLangfuseCallbackTestCase(base.BaseTestCase):
+class HookLangfuseCallbackTestCase(BaseTestCase):
 
     def test_use_tongyi_with_langfuse_callback(self):
         query = '请用50个字描写春天的景色。'

@@ -5,28 +5,15 @@ import unittest
 from typing import Generator
 
 from dashscope.api_entities.dashscope_response import GenerationResponse
-from langfuse import Langfuse
 from langfuse.decorators import observe, langfuse_context
 
 from langfarm.hooks.dashscope import Generation
-from tests.base import BaseTestCase
+from tests.base import LangfuseSDKTestCase
 
 logger = logging.getLogger(__name__)
 
 
-class HookDashscopeTestCase(BaseTestCase):
-
-    langfuse_sdk: Langfuse = None
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.langfuse_sdk = Langfuse()
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        cls.langfuse_sdk.shutdown()
+class HookDashscopeTestCase(LangfuseSDKTestCase):
 
     @observe(as_type="generation")
     def tongyi_generation(self, model_name: str, query: str) -> str:
@@ -57,6 +44,7 @@ class HookDashscopeTestCase(BaseTestCase):
     def test_dashscope_integration_observe(self):
         query = "请用50个字描写春天的景色。"
         trace_id, output = self.dashscope_hook_call(query)
+        self.flush()
         time.sleep(2)
         tr = self.langfuse_sdk.fetch_trace(trace_id)
 
@@ -111,7 +99,7 @@ class HookDashscopeTestCase(BaseTestCase):
                 output += chunk_output
             else:
                 output = chunk_output
-            logger.info("chunk usage=%s, out => %s", chunk.usage, chunk_output)
+            # logger.info("chunk usage=%s, out => %s", chunk.usage, chunk_output)
 
         langfuse_context.update_current_trace(output=output)
 
@@ -119,7 +107,8 @@ class HookDashscopeTestCase(BaseTestCase):
 
     def assert_stream_dashscope_integration_observe(self, query: str, is_inc: bool):
         trace_id, output = self.stream_dashscope_hook_call(query, is_inc)
-        time.sleep(3)
+        self.flush()
+        time.sleep(2)
         tr = self.langfuse_sdk.fetch_trace(trace_id)
 
         assert tr
