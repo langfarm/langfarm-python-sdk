@@ -1,3 +1,3 @@
 #!/bin/sh
 
-docker compose -f docker-compose-langfuse.yml up -d
+docker compose -f docker-compose-langfuse.yml -p langfarm up -d
