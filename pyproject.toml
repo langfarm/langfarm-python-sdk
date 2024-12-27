@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "langfarm"
-version = "0.1.1"
+version = "0.1.2"
 description = "LLM 相关工具集"
 authors = ["chenlb <chenlbphoto@163.com>"]
 license = "MIT"

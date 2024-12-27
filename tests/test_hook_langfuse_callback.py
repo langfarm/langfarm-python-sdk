@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 import unittest
 
@@ -15,7 +16,7 @@ class HookLangfuseCallbackTestCase(base.BaseTestCase):
 
     def test_use_tongyi_with_langfuse_callback(self):
         query = '请用50个字描写春天的景色。'
-        llm = Tongyi(model="qwen-plus")
+        llm = Tongyi(model="qwen-plus", api_key=os.getenv('DASHSCOPE_API_KEY'))
         # base.BaseTestCase 的 setUpClass() 使用 load_dotenv() 加载了 .env 配置
         # LANGFUSE_PUBLIC_KEY
         # LANGFUSE_SECRET_KEY
@@ -52,7 +53,7 @@ class HookLangfuseCallbackTestCase(base.BaseTestCase):
 
     def test_use_tongyi_stream_with_langfuse_callback(self):
         query = '请用200个字描写春天的景色。'
-        llm: BaseLLM = Tongyi(model="qwen-turbo")
+        llm: BaseLLM = Tongyi(model="qwen-turbo", api_key=os.getenv('DASHSCOPE_API_KEY'))
         langfuse_handler = CallbackHandler(trace_name="Tongyi-stream")
         chunks = llm.stream(query, config={"callbacks": [langfuse_handler]})
         output_chunk = []
