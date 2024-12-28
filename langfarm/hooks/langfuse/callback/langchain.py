@@ -31,9 +31,15 @@ def _parse_usage(response: LLMResult):
                 if generation_chunk.generation_info and (
                         "token_usage" in generation_chunk.generation_info
                 ):
-                    llm_usage = _parse_usage_model(
+                    _usage = _parse_usage_model(
                         generation_chunk.generation_info["token_usage"]
                     )
+                    # 只上报3个字段
+                    llm_usage = {
+                        'input': _usage['input']
+                        , 'output': _usage['output']
+                        , 'total': _usage['total']
+                    }
                     break
     return llm_usage
 

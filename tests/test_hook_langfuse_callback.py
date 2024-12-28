@@ -58,7 +58,7 @@ class HookLangfuseCallbackTestCase(BaseTestCase):
         logger.info('get_usage=%s', usage)
         assert obs.usage.input == usage['input']
         assert obs.usage.output == usage['output']
-        assert obs.usage.total == usage['total_tokens']
+        assert obs.usage.total == usage['total']
         logger.info("完成!")
 
     def test_use_tongyi_stream_with_langfuse_callback(self):

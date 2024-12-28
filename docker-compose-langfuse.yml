@@ -24,7 +24,7 @@ services:
       - LANGFUSE_INIT_USER_NAME=${LANGFUSE_INIT_USER_NAME:-}
       - LANGFUSE_INIT_USER_PASSWORD=${LANGFUSE_INIT_USER_PASSWORD:-}
 
-  db:
+  postgres:
     image: postgres
     restart: always
     healthcheck:
