@@ -8,7 +8,7 @@ from langfarm.hooks.misc import retry_stat_to_meta
 logger = logging.getLogger(__name__)
 
 try:
-    import langchain_community
+    import langchain_community  # noqa: F401
 except ImportError:
     raise ModuleNotFoundError(
         "Please install langchain community to use this feature: 'pip install langchain-community'"
@@ -33,10 +33,10 @@ def generate_with_retry(llm: tongyi.Tongyi, **kwargs: Any) -> Any:
     response = None
     try:
         response = _generate_with_retry(**kwargs)
-        level = 'WARNING'
+        level = "WARNING"
     except Exception as err:
         err = err
-        level = 'ERROR'
+        level = "ERROR"
 
     # 记录重试信息
     retry_stat = _generate_with_retry.statistics

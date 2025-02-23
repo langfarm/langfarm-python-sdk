@@ -1,3 +1,3 @@
 #!/bin/sh
 
-docker compose -f docker-compose-langfuse.yml pull langfuse-server
+docker compose -f docker/docker-compose-deps.yml pull langfuse-server

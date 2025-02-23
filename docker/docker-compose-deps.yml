@@ -2,12 +2,12 @@ services:
   langfuse-server:
     image: langfuse/langfuse:2
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
       - NEXTAUTH_SECRET=mysecret
       - SALT=mysalt
       - ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000 # generate via `openssl rand -hex 32`
@@ -37,22 +37,21 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
     ports:
-      - 5432:5432
+      - "5432:5432"
     volumes:
-      - database_data:/var/lib/postgresql/data
+      # 初始化 langfarm-tracing 使用的 langfuse 相关表数据。仅用于本地测试。
+      # docker exec -it langfarm-postgres-1 psql -U postgres -w postgres -f /init_data.sql
+      - ../tests/init_db/init_data.sql:/init_data.sql
+      - /tmp/langfarm-sdk/pg_data:/var/lib/postgresql/data
 
   pgadmin:
     image: dpage/pgadmin4
     restart: always
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
     ports:
-      - 5050:80
+      - "5050:80"
     environment:
       - PGADMIN_DEFAULT_EMAIL=admin@example.com
       - PGADMIN_DEFAULT_PASSWORD=langfarm
-
-volumes:
-  database_data:
-    driver: local

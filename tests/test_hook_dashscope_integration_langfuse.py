@@ -1,24 +1,22 @@
-import logging
 import os
 import time
 import unittest
 from typing import Generator
 
+from base import LangfuseSDKTestCase, get_test_logger
 from dashscope.api_entities.dashscope_response import GenerationResponse
-from langfuse.decorators import observe, langfuse_context
+from langfuse.decorators import langfuse_context, observe
 
 from langfarm.hooks.dashscope import Generation
-from tests.base import LangfuseSDKTestCase
 
-logger = logging.getLogger(__name__)
+logger = get_test_logger(__name__)
 
 
 class HookDashscopeTestCase(LangfuseSDKTestCase):
-
     @observe(as_type="generation")
     def tongyi_generation(self, model_name: str, query: str) -> str:
         response = Generation.call(
-            api_key=os.getenv('DASHSCOPE_API_KEY'),
+            api_key=os.getenv("DASHSCOPE_API_KEY"),
             model=model_name,
             prompt=query,
             # result_format="message"
@@ -33,7 +31,8 @@ class HookDashscopeTestCase(LangfuseSDKTestCase):
         else:
             tip = "请参考文档：https://help.aliyun.com/zh/model-studio/developer-reference/error-code"
             raise Exception(
-                f"HTTP返回码：{response.status_code}；错误码：{response.code}；错误信息：{response.message}。{tip}")
+                f"HTTP返回码：{response.status_code}；错误码：{response.code}；错误信息：{response.message}。{tip}"
+            )
 
     @observe()
     def dashscope_hook_call(self, query: str) -> (str, str):
@@ -71,15 +70,15 @@ class HookDashscopeTestCase(LangfuseSDKTestCase):
 
     @observe(as_type="generation")
     def stream_tongyi_generation(
-            self, model_name: str, query: str, result_format: str, is_inc_output: bool
+        self, model_name: str, query: str, result_format: str, is_inc_output: bool
     ) -> Generator[GenerationResponse, None, None]:
         response = Generation.call(
-            api_key=os.getenv('DASHSCOPE_API_KEY'),
+            api_key=os.getenv("DASHSCOPE_API_KEY"),
             model=model_name,
             prompt=query,
             result_format=result_format,
             stream=True,
-            incremental_output=is_inc_output
+            incremental_output=is_inc_output,
         )
 
         return response
@@ -90,7 +89,7 @@ class HookDashscopeTestCase(LangfuseSDKTestCase):
         chunks = self.stream_tongyi_generation("qwen-turbo", query, result_format, is_inc_output)
         langfuse_context.update_current_trace(input=query, name=f"stream[{is_inc_output}]_hook_call")
 
-        output = ''
+        output = ""
 
         for chunk in chunks:
             # do something ...
@@ -109,6 +108,8 @@ class HookDashscopeTestCase(LangfuseSDKTestCase):
         trace_id, output = self.stream_dashscope_hook_call(query, is_inc)
         self.flush()
         time.sleep(2)
+        logger.info("trace_id=%s", trace_id)
+        logger.info("output=%s", output)
         tr = self.langfuse_sdk.fetch_trace(trace_id)
 
         assert tr
@@ -133,13 +134,13 @@ class HookDashscopeTestCase(LangfuseSDKTestCase):
         logger.info("完成!")
 
     def test_stream_dashscope_integration_observe(self):
-        query = "请用200个字描写春天的景色。"
+        query = "请用50个字描写春天的景色。"
         self.assert_stream_dashscope_integration_observe(query, False)
 
     def test_stream_dashscope_integration_observe_inc(self):
-        query = "请用200个字描写夏天的景色。"
+        query = "请用50个字描写夏天的景色。"
         self.assert_stream_dashscope_integration_observe(query, True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
