@@ -1,11 +1,11 @@
-import json
 import logging
-import time
 from datetime import datetime
 from typing import Any, List, Union, Dict, Generator, Callable
 
 from langfuse.decorators import langfuse_context
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
+
+from langfarm.hooks.misc import retry_stat_to_meta
 
 try:
     import dashscope
@@ -179,19 +179,6 @@ class Generation(TongyiGeneration):
             )
 
     @classmethod
-    def _retry_stat_meta(cls, max_retries: int, retry_stat: dict) -> dict:
-        retry_meta = None
-        if 'attempt_number' in retry_stat:
-            retry_cnt = retry_stat['attempt_number']
-            if retry_cnt > 1:
-                retry_meta = {
-                    'run_cnt': retry_cnt
-                    , 'idle_second': retry_stat['idle_for']
-                    , 'max_retries': max_retries
-                }
-        return retry_meta
-
-    @classmethod
     def generate_with_retry(cls, max_retries: int, **kwargs: Any) -> (GenerationResponse, dict):
         """Use tenacity to retry the completion call."""
         retry_decorator = _create_retry_decorator(max_retries)
@@ -208,7 +195,7 @@ class Generation(TongyiGeneration):
 
         # 记录重试信息
         retry_stat = _generate_with_retry.statistics
-        return response, cls._retry_stat_meta(max_retries, retry_stat)
+        return response, retry_stat_to_meta(max_retries, retry_stat)
 
     @classmethod
     def stream_generate_with_retry(cls, max_retries: int, **kwargs: Any) -> Generator[GenerationResponse, None, None]:
