@@ -1,0 +1,41 @@
+name: 🐛 报告 Bug
+description: 报告错误或不期望的行为
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **请先查看已经报行的 Bug [langfarm issue](https://github.com/langfarm/langfarm-python-sdk/issues)，避免重复报告 Bug**
+
+  - type: textarea
+    attributes:
+      label: Bug 描述
+      description: |
+        对bug的清晰而简洁的描述，包含[最小可重现示例](https://stackoverflow.com/help/minimal-reproducible-example)。
+        假如不能提供最小可重现示例, 我们不大可能帮助你。
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: 平台和环境
+      description: 什么环境下使用 langfarm-python-sdk?
+      placeholder: 例如：macOS 14 arm64, Windows 11 x86_64, Ubuntu 20.04 amd64
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: 版本
+      description: 你使用什么版本的 langfarm-python-sdk？
+      placeholder: 例如：v0.1.0
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Python 版本
+      description: 你使用什么 Python 版本 (使用 `uv run python --version`)
+      placeholder: 例如：Python 3.12.6
+    validations:
+      required: false

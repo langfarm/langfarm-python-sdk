@@ -1,0 +1,26 @@
+name: 提问
+description: 关于 langfarm-python-sdk 的问题
+labels: ["question"]
+body:
+  - type: textarea
+    attributes:
+      label: 问题
+      description: 描述您的问题
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: 平台和环境
+      description: 什么环境下使用 langfarm-python-sdk?
+      placeholder: 例如：macOS 14 arm64, Windows 11 x86_64, Ubuntu 20.04 amd64；Python 3.11.4
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: 版本
+      description: 你使用什么版本的 langfarm-python-sdk？
+      placeholder: 例如：v0.1.0
+    validations:
+      required: false

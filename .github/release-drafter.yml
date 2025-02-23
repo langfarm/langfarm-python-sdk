@@ -1,0 +1,4 @@
+# Use https://github.com/langfarm/.github/blob/main/.github/release-drafter.yml
+_extends: .github
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'

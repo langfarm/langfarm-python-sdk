@@ -1,0 +1,21 @@
+name: '📝 文档'
+labels: ['documentation']
+description: '让我们知道，如果任何文件缺失或可以改进'
+
+body:
+  - type: textarea
+    attributes:
+      label: 描述
+      description: |
+        描述现有文档未涵盖的用例。
+        如果提交文档补丁比编写问题更容易，那就来提交吧！
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 参考文献
+      description: |
+        参考任何相关的材料，以前的工作或问题/拉请求，可以用来作为灵感。
+    validations:
+      required: false

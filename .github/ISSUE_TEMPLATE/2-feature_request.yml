@@ -1,0 +1,24 @@
+name: 🚀 新功能或改进
+description: 新功能或改进的提议
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **请先查看已经报告的功能或改进 [langfarm-python-sdk issue](https://github.com/langfarm/langfarm-python-sdk/issues)，避免重复报告**
+
+  - type: textarea
+    attributes:
+      label: 描述
+      description: |
+        对您希望看到的新功能或改进的清晰而简洁的描述。如果适用，也请描述当前的行为。
+
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 示例
+      description: 提供一个示例，说明用户体验将如何改变，或者新特性将如何使用。
+    validations:
+      required: false
