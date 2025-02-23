@@ -8,11 +8,9 @@ from langfuse.callback.langchain import LangchainCallbackHandler
 logger = logging.getLogger(__name__)
 
 try:
-    import langchain_core
+    import langchain_core  # noqa: F401
 except ImportError:
-    raise ModuleNotFoundError(
-        "Please install langchain core to use this feature: 'pip install langchain-core'"
-    )
+    raise ModuleNotFoundError("Please install langchain core to use this feature: 'pip install langchain-core'")
 
 try:
     from langchain_core.outputs import LLMResult
@@ -22,24 +20,17 @@ except ImportError:
 
 def _parse_usage(response: LLMResult):
     from langfuse.callback.langchain import _parse_usage_model
+
     llm_usage = None
     # tongyi usage
     # generations[0][0].generation_info[token_usage]
     if hasattr(response, "generations"):
         for generation in response.generations:
             for generation_chunk in generation:
-                if generation_chunk.generation_info and (
-                        "token_usage" in generation_chunk.generation_info
-                ):
-                    _usage = _parse_usage_model(
-                        generation_chunk.generation_info["token_usage"]
-                    )
+                if generation_chunk.generation_info and ("token_usage" in generation_chunk.generation_info):
+                    _usage = _parse_usage_model(generation_chunk.generation_info["token_usage"])
                     # 只上报3个字段
-                    llm_usage = {
-                        'input': _usage['input']
-                        , 'output': _usage['output']
-                        , 'total': _usage['total']
-                    }
+                    llm_usage = {"input": _usage["input"], "output": _usage["output"], "total": _usage["total"]}
                     break
     return llm_usage
 
@@ -51,6 +42,7 @@ def _hook_parse_usage(func):
             # 调用找到使用原来的函数找。
             llm_usage = func(response)
         return llm_usage
+
     return wrapper
 
 
@@ -65,7 +57,6 @@ except Exception as e:
 
 
 class CompatibleTongyiCallbackHandler(LangchainCallbackHandler):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.usage = None

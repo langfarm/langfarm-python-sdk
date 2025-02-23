@@ -1,37 +1,72 @@
-[tool.poetry]
-name = "langfarm"
-version = "0.1.2"
-description = "LLM 相关工具集"
-authors = ["chenlb <chenlbphoto@163.com>"]
-license = "MIT"
-readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.9"
-langfuse = "^2.53.9"
-tenacity = "^9.0.0"
-
-[tool.poetry.group.dev.dependencies]
-langchain-core = "^0.3.18"
-langchain-community = "^0.3.7"
-dashscope = "^1.20.12"
-pytest = "^8.3.3"
-coverage = "^7.6.4"
-pyyaml = "^6.0.2"
-python-dotenv = "^1.0.1"
-
-[[tool.poetry.source]]
-name = "aliyun-pypi"
-url = "http://mirrors.aliyun.com/pypi/simple/"
-# primary 表示主镜像源
-priority = "primary"
-
-[[tool.poetry.source]]
-name = "ustc-pypi"
-url = "https://mirrors.ustc.edu.cn/pypi/simple"
-# supplemental 表示备镜像源
-priority = "supplemental"
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "langfarm"
+version = "0.2.0"
+description = "LLM 相关工具集"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "langfuse >= 2.33.0",
+    "tenacity >= 9.0.0"
+]
+
+[dependency-groups]
+dev = [
+    "coverage>=7.6.12",
+    "poethepoet>=0.32.2",
+    "pyright>=1.1.394",
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "python-dotenv>=1.0.1",
+    "pyyaml>=6.0.2",
+    "ruff>=0.9.7",
+    "testcontainers>=4.9.1",
+]
+
+[project.optional-dependencies]
+openai = [
+    "openai >= 1.0.0",
+]
+langchain = [
+    "langchain-core >= 0.3.0",
+    "langchain-community >= 0.3.0",
+]
+dashscope = [
+    "dashscope >= 1.20.12",
+]
+
+[tool.ruff]
+line-length = 120
+fix = true
+target-version = "py39"
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.pyright]
+include = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=src --cov-report=html"
+minversion = "6.0"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+omit = [
+    "*/tests/**/*.py"
+]
+
+[tool.poe.tasks]
+# run with eg `uv run poe fmt`
+fmt = "ruff format ${PWD}"
+lint = "ruff check --fix ${PWD}"
+pyright = "pyright ${PWD}"
+test = "pytest ${PWD}"
+# run all the above
+all = ["fmt", "lint", "pyright", "test"]
+
+"ci:fmt" = "ruff format --check ${PWD}"  # fail if not formatted
+"ci:lint" = "ruff check ${PWD}"
