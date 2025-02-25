@@ -1,9 +1,9 @@
 import os
 import time
 import unittest
-from typing import Generator
+from typing import Generator, Optional
 
-from mock import MockOutputGeneration, dashscope_call, assert_trace
+from mock import MockOutputGeneration, dashscope_call, assert_trace  # type: ignore
 from base import LangfuseSDKTestCase, get_test_logger
 from dashscope.api_entities.dashscope_response import GenerationResponse
 from langfuse.decorators import langfuse_context, observe
@@ -14,10 +14,11 @@ logger = get_test_logger(__name__)
 
 
 class HookDashscopeTestCase(LangfuseSDKTestCase):
-
     def test_dashscope_integration_observe(self):
         query = "请用50个字描写春天的景色。"
-        my_output = "mock: 春天，大地复苏，桃花盛开，嫩绿的柳枝随风轻舞，溪水潺潺流淌，鸟儿欢快鸣叫，万物充满生机与希望。"
+        my_output = (
+            "mock: 春天，大地复苏，桃花盛开，嫩绿的柳枝随风轻舞，溪水潺潺流淌，鸟儿欢快鸣叫，万物充满生机与希望。"
+        )
         MockOutputGeneration.with_input_tokens(len(query)).with_output(my_output)
         trace_id, output = dashscope_call(query)
         assert_trace(self.langfuse_sdk, query, output, trace_id)
@@ -27,7 +28,7 @@ class HookDashscopeTestCase(LangfuseSDKTestCase):
         self, model_name: str, query: str, result_format: str, is_inc_output: bool
     ) -> Generator[GenerationResponse, None, None]:
         response = Generation.call(
-            api_key=os.getenv("DASHSCOPE_API_KEY"),
+            api_key=os.getenv("DASHSCOPE_API_KEY") or "",
             model=model_name,
             prompt=query,
             result_format=result_format,
@@ -38,7 +39,7 @@ class HookDashscopeTestCase(LangfuseSDKTestCase):
         return response
 
     @observe()
-    def stream_dashscope_hook_call(self, query: str, is_inc_output: bool = True) -> (str, str):
+    def stream_dashscope_hook_call(self, query: str, is_inc_output: bool = True) -> tuple[Optional[str], str]:
         result_format = "message"
         chunks = self.stream_tongyi_generation("qwen-turbo", query, result_format, is_inc_output)
         langfuse_context.update_current_trace(input=query, name=f"stream[{is_inc_output}]_hook_call")
@@ -64,6 +65,7 @@ class HookDashscopeTestCase(LangfuseSDKTestCase):
         time.sleep(2)
         logger.info("trace_id=%s", trace_id)
         logger.info("output=%s", output)
+        assert trace_id
         tr = self.langfuse_sdk.fetch_trace(trace_id)
 
         assert tr
@@ -82,8 +84,11 @@ class HookDashscopeTestCase(LangfuseSDKTestCase):
 
         logger.info(obs.usage)
 
+        assert obs.usage.input
         assert obs.usage.input > 0
+        assert obs.usage.output
         assert obs.usage.output > 0
+        assert obs.usage.total
         assert obs.usage.total > 0
         logger.info("完成!")
 

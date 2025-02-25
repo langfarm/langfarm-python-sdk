@@ -18,7 +18,7 @@ except ImportError:
     LLMResult = None
 
 
-def _parse_usage(response: LLMResult):
+def _parse_usage(response: LLMResult):  # type: ignore
     from langfuse.callback.langchain import _parse_usage_model
 
     llm_usage = None
@@ -30,13 +30,13 @@ def _parse_usage(response: LLMResult):
                 if generation_chunk.generation_info and ("token_usage" in generation_chunk.generation_info):
                     _usage = _parse_usage_model(generation_chunk.generation_info["token_usage"])
                     # 只上报3个字段
-                    llm_usage = {"input": _usage["input"], "output": _usage["output"], "total": _usage["total"]}
+                    llm_usage = {"input": _usage["input"], "output": _usage["output"], "total": _usage["total"]}  # type: ignore
                     break
     return llm_usage
 
 
 def _hook_parse_usage(func):
-    def wrapper(response: LLMResult):
+    def wrapper(response: LLMResult):  # type: ignore
         llm_usage = _parse_usage(response)
         if llm_usage is None:
             # 调用找到使用原来的函数找。
@@ -64,7 +64,7 @@ class CompatibleTongyiCallbackHandler(LangchainCallbackHandler):
     def get_usage(self):
         return self.usage
 
-    def parse_usage(self, response: LLMResult):
+    def parse_usage(self, response: LLMResult):  # type: ignore
         usage = _parse_usage(response)
         if usage is None:
             usage = langfuse_parse_usage(response)
@@ -72,7 +72,12 @@ class CompatibleTongyiCallbackHandler(LangchainCallbackHandler):
         self.usage = usage
 
     def on_llm_end(
-        self, response: LLMResult, *, run_id: UUID, parent_run_id: Optional[UUID] = None, **kwargs: Any
+        self,
+        response: LLMResult,  # type: ignore
+        *,
+        run_id: UUID,
+        parent_run_id: Optional[UUID] = None,
+        **kwargs: Any,
     ) -> Any:
         self.parse_usage(response)
         return super().on_llm_end(response, run_id=run_id, parent_run_id=parent_run_id, **kwargs)

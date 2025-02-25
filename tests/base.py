@@ -62,7 +62,7 @@ class BaseTestCase(unittest.TestCase):
 
 
 class LangfuseSDKTestCase(BaseTestCase):
-    langfuse_sdk: Langfuse = None
+    langfuse_sdk: Langfuse
 
     @classmethod
     def _set_up_class(cls):
