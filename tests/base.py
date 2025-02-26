@@ -8,11 +8,12 @@ from dotenv import load_dotenv
 from langfuse import Langfuse
 
 root_dir = __file__[: -len("/tests/base.py")]
+log_file = f"{root_dir}/tests/logging.yaml"
 
 
 def config_log(base_dir: str):
     # 读取 yaml 格式的日志配置
-    with open(f"{base_dir}/logging.yaml") as f:
+    with open(log_file) as f:
         log_config = yaml.full_load(f)
         out_log_file = log_config["handlers"]["file_handler"]["filename"]
         log_dir = f"{root_dir}/logs"
@@ -27,7 +28,15 @@ def get_test_logger(name: str):
     return logging.getLogger(f"tests.{name}")
 
 
+config_log(root_dir)
 logger = get_test_logger(__name__)
+# 打印空行
+print()
+logger.info("配置 log_file = %s", log_file)
+# load .env
+dotenv_file = f"{root_dir}/.env"
+logger.info("配置 .env = %s", dotenv_file)
+load_dotenv(dotenv_file, verbose=True)
 
 
 class BaseTestCase(unittest.TestCase):
@@ -40,19 +49,6 @@ class BaseTestCase(unittest.TestCase):
         子类不要覆盖，使用 _set_up_class() 代替 setUpClass()
         :return:
         """
-        # 配置日志
-        base_dir = __file__[: -len("/tests/base.py")]
-        log_file = f"{base_dir}/logging.yaml"
-        config_log(base_dir)
-
-        # 打印空行
-        print()
-        logger.info("配置 log_file = %s", log_file)
-
-        # load .env
-        dotenv_file = f"{base_dir}/.env"
-        logger.info("配置 .env = %s", dotenv_file)
-        load_dotenv(dotenv_file, verbose=True)
 
         cls._set_up_class()
 
@@ -66,11 +62,12 @@ class BaseTestCase(unittest.TestCase):
 
 
 class LangfuseSDKTestCase(BaseTestCase):
-    langfuse_sdk: Langfuse = None
+    langfuse_sdk: Langfuse
 
     @classmethod
     def _set_up_class(cls):
         cls.langfuse_sdk = Langfuse()
+        cls.langfuse_sdk.auth_check()
 
     @classmethod
     @final
@@ -81,7 +78,8 @@ class LangfuseSDKTestCase(BaseTestCase):
         子类不要覆盖，使用 _tear_down_class() 代替 tearDownClass()
         :return:
         """
-        cls.langfuse_sdk.shutdown()
+        if cls.langfuse_sdk:
+            cls.langfuse_sdk.shutdown()
         cls._tear_down_class()
 
     @classmethod

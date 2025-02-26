@@ -1,8 +1,9 @@
 import os
 import time
 import unittest
-from typing import Generator
+from typing import Generator, Optional
 
+from mock import MockOutputGeneration, dashscope_call, assert_trace  # type: ignore
 from base import LangfuseSDKTestCase, get_test_logger
 from dashscope.api_entities.dashscope_response import GenerationResponse
 from langfuse.decorators import langfuse_context, observe
@@ -13,67 +14,21 @@ logger = get_test_logger(__name__)
 
 
 class HookDashscopeTestCase(LangfuseSDKTestCase):
-    @observe(as_type="generation")
-    def tongyi_generation(self, model_name: str, query: str) -> str:
-        response = Generation.call(
-            api_key=os.getenv("DASHSCOPE_API_KEY"),
-            model=model_name,
-            prompt=query,
-            # result_format="message"
-        )
-
-        if response.status_code == 200:
-            if hasattr(response.output, "text"):
-                return response.output.text
-            else:
-                # result_format="message"
-                return response.output.choices[0].message.content
-        else:
-            tip = "请参考文档：https://help.aliyun.com/zh/model-studio/developer-reference/error-code"
-            raise Exception(
-                f"HTTP返回码：{response.status_code}；错误码：{response.code}；错误信息：{response.message}。{tip}"
-            )
-
-    @observe()
-    def dashscope_hook_call(self, query: str) -> (str, str):
-        output = self.tongyi_generation("qwen-plus", query)
-        langfuse_context.update_current_trace(input=query, output=output)
-        return langfuse_context.get_current_trace_id(), output
-
     def test_dashscope_integration_observe(self):
         query = "请用50个字描写春天的景色。"
-        trace_id, output = self.dashscope_hook_call(query)
-        self.flush()
-        time.sleep(2)
-        tr = self.langfuse_sdk.fetch_trace(trace_id)
-
-        assert tr
-        assert tr.data
-
-        tr = tr.data
-
-        assert tr.input == query
-        assert tr.output == output
-
-        assert tr.observations
-        assert len(tr.observations) > 0
-        obs = tr.observations[0]
-        assert obs
-        assert obs.usage
-
-        logger.info(obs.usage)
-
-        assert obs.usage.input > 0
-        assert obs.usage.output > 0
-        assert obs.usage.total > 0
-        logger.info("完成!")
+        my_output = (
+            "mock: 春天，大地复苏，桃花盛开，嫩绿的柳枝随风轻舞，溪水潺潺流淌，鸟儿欢快鸣叫，万物充满生机与希望。"
+        )
+        MockOutputGeneration.with_input_tokens(len(query)).with_output(my_output)
+        trace_id, output = dashscope_call(query)
+        assert_trace(self.langfuse_sdk, query, output, trace_id)
 
     @observe(as_type="generation")
     def stream_tongyi_generation(
         self, model_name: str, query: str, result_format: str, is_inc_output: bool
     ) -> Generator[GenerationResponse, None, None]:
-        response = Generation.call(
-            api_key=os.getenv("DASHSCOPE_API_KEY"),
+        response: Generator[GenerationResponse, None, None] = Generation.call(  # type: ignore
+            api_key=os.getenv("DASHSCOPE_API_KEY") or "",
             model=model_name,
             prompt=query,
             result_format=result_format,
@@ -84,7 +39,7 @@ class HookDashscopeTestCase(LangfuseSDKTestCase):
         return response
 
     @observe()
-    def stream_dashscope_hook_call(self, query: str, is_inc_output: bool = True) -> (str, str):
+    def stream_dashscope_hook_call(self, query: str, is_inc_output: bool = True) -> tuple[Optional[str], str]:
         result_format = "message"
         chunks = self.stream_tongyi_generation("qwen-turbo", query, result_format, is_inc_output)
         langfuse_context.update_current_trace(input=query, name=f"stream[{is_inc_output}]_hook_call")
@@ -110,6 +65,7 @@ class HookDashscopeTestCase(LangfuseSDKTestCase):
         time.sleep(2)
         logger.info("trace_id=%s", trace_id)
         logger.info("output=%s", output)
+        assert trace_id
         tr = self.langfuse_sdk.fetch_trace(trace_id)
 
         assert tr
@@ -128,8 +84,11 @@ class HookDashscopeTestCase(LangfuseSDKTestCase):
 
         logger.info(obs.usage)
 
+        assert obs.usage.input
         assert obs.usage.input > 0
+        assert obs.usage.output
         assert obs.usage.output > 0
+        assert obs.usage.total
         assert obs.usage.total > 0
         logger.info("完成!")
 

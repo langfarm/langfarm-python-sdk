@@ -18,24 +18,27 @@ try:
     from langchain_community.llms import tongyi
 except ImportError:
     tongyi = None
+    raise ModuleNotFoundError(
+        "Please install langchain community to use this feature: 'pip install langchain-community'"
+    )
 
 
-def generate_with_retry(llm: tongyi.Tongyi, **kwargs: Any) -> Any:
+def generate_with_retry(llm: tongyi.Tongyi, **kwargs: Any) -> Any:  # type: ignore
     """Use tenacity to retry the completion call."""
-    retry_decorator = tongyi._create_retry_decorator(llm)
+    retry_decorator = tongyi._create_retry_decorator(llm)  # type: ignore
 
     @retry_decorator
     def _generate_with_retry(**_kwargs: Any) -> Any:
         resp = llm.client.call(**_kwargs)
-        return tongyi.check_response(resp)
+        return tongyi.check_response(resp)  # type: ignore
 
-    err = None
+    _err = None
     response = None
     try:
         response = _generate_with_retry(**kwargs)
         level = "WARNING"
     except Exception as err:
-        err = err
+        _err = err
         level = "ERROR"
 
     # 记录重试信息
@@ -44,8 +47,8 @@ def generate_with_retry(llm: tongyi.Tongyi, **kwargs: Any) -> Any:
     if retry_meta:
         langfuse_context.update_current_observation(level=level, metadata=retry_meta)
 
-    if err:
-        raise err
+    if _err:
+        raise _err
     else:
         return response
 

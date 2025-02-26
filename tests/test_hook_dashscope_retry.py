@@ -6,7 +6,7 @@ from base import LangfuseSDKTestCase, get_test_logger
 from langfuse.api import ObservationLevel
 from langfuse.client import FetchTraceResponse
 from langfuse.decorators import langfuse_context, observe
-from mock import MockGeneration, MockErrorGeneration
+from mock import MockGeneration, MockErrorGeneration  # type: ignore
 from tenacity import before_sleep_log, retry, stop_after_attempt, wait_fixed, wait_random
 
 logger = get_test_logger(__name__)
@@ -41,7 +41,7 @@ class MyTestCase(LangfuseSDKTestCase):
         except Exception as e:
             logger.error("error %s", e)
 
-        retry_stat = self.raise_my_exception.statistics
+        retry_stat = self.raise_my_exception.statistics  # type: ignore
         logger.info(retry_stat)
         assert retry_stat["attempt_number"] == 3
         assert retry_stat["idle_for"] >= 2
@@ -74,7 +74,7 @@ class MyTestCase(LangfuseSDKTestCase):
         langfuse_context.flush()
 
         trace_id = langfuse_context.get_current_trace_id()
-
+        assert trace_id
         trace: FetchTraceResponse = self.langfuse_sdk.fetch_trace(trace_id)
         # print(trace)
         observations = trace.data.observations
@@ -101,6 +101,7 @@ class MyTestCase(LangfuseSDKTestCase):
         langfuse_context.flush()
 
         trace_id = langfuse_context.get_current_trace_id()
+        assert trace_id
         trace: FetchTraceResponse = self.langfuse_sdk.fetch_trace(trace_id)
         # print(trace)
         observations = trace.data.observations
@@ -122,6 +123,7 @@ class MyTestCase(LangfuseSDKTestCase):
         langfuse_context.flush()
 
         trace_id = langfuse_context.get_current_trace_id()
+        assert trace_id
         trace: FetchTraceResponse = self.langfuse_sdk.fetch_trace(trace_id)
         # print(trace)
         observations = trace.data.observations
@@ -173,6 +175,7 @@ class MyTestCase(LangfuseSDKTestCase):
         langfuse_context.flush()
 
         trace_id = langfuse_context.get_current_trace_id()
+        assert trace_id
         trace: FetchTraceResponse = self.langfuse_sdk.fetch_trace(trace_id)
         print(trace)
         observations = trace.data.observations

@@ -15,10 +15,10 @@ except ImportError:
 try:
     from langchain_core.outputs import LLMResult
 except ImportError:
-    LLMResult = None
+    raise ModuleNotFoundError("Please install langchain core to use this feature: 'pip install langchain-core'")
 
 
-def _parse_usage(response: LLMResult):
+def _parse_usage(response: LLMResult):  # type: ignore
     from langfuse.callback.langchain import _parse_usage_model
 
     llm_usage = None
@@ -30,7 +30,7 @@ def _parse_usage(response: LLMResult):
                 if generation_chunk.generation_info and ("token_usage" in generation_chunk.generation_info):
                     _usage = _parse_usage_model(generation_chunk.generation_info["token_usage"])
                     # 只上报3个字段
-                    llm_usage = {"input": _usage["input"], "output": _usage["output"], "total": _usage["total"]}
+                    llm_usage = {"input": _usage["input"], "output": _usage["output"], "total": _usage["total"]}  # type: ignore
                     break
     return llm_usage
 
@@ -72,7 +72,12 @@ class CompatibleTongyiCallbackHandler(LangchainCallbackHandler):
         self.usage = usage
 
     def on_llm_end(
-        self, response: LLMResult, *, run_id: UUID, parent_run_id: Optional[UUID] = None, **kwargs: Any
+        self,
+        response: LLMResult,
+        *,
+        run_id: UUID,
+        parent_run_id: Optional[UUID] = None,
+        **kwargs: Any,
     ) -> Any:
         self.parse_usage(response)
         return super().on_llm_end(response, run_id=run_id, parent_run_id=parent_run_id, **kwargs)

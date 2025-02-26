@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, List, Union, Dict, Generator, Callable
+from typing import Any, List, Union, Dict, Generator, Callable, Optional
 
 from langfuse.decorators import langfuse_context
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
@@ -16,9 +16,7 @@ try:
     from dashscope import Generation as TongyiGeneration
     from dashscope.api_entities.dashscope_response import Message, GenerationResponse
 except ImportError:
-    TongyiGeneration = None
-    Message = None
-    GenerationResponse = None
+    raise ModuleNotFoundError("Please install Dashscope to use this feature: 'pip install dashscope'")
 
 
 logger = logging.getLogger(__name__)
@@ -50,9 +48,9 @@ class RetryGenerationException(FailedGenerationException):
 
 class Generation(TongyiGeneration):
     @classmethod
-    def response_to_output(cls, result_format: str, response: GenerationResponse) -> str:
+    def response_to_output(cls, result_format: Optional[str], response: GenerationResponse) -> str:
         if result_format and "message" == result_format:
-            output = response.output.choices[0].message.content
+            output = str(response.output.choices[0].message.content)
         else:
             output = response.output.text
 
@@ -66,13 +64,18 @@ class Generation(TongyiGeneration):
             model=model,
             input=input_query,
             output=output,
-            usage={"input": usage["input_tokens"], "output": usage["output_tokens"], "unit": "TOKENS"},
+            usage={"input": usage["input_tokens"], "output": usage["output_tokens"], "unit": "TOKENS"},  # type: ignore
             **kwargs,
         )
 
     @classmethod
     def _up_general_generation_observation(
-        cls, input_query: Any, model: str, result_format: str, response: GenerationResponse, retry_meta: dict
+        cls,
+        input_query: Any,
+        model: str,
+        result_format: Optional[str],
+        response: GenerationResponse,
+        retry_meta: Optional[dict],
     ):
         metadata = None
         level = None
@@ -92,7 +95,7 @@ class Generation(TongyiGeneration):
         cls,
         input_query: Any,
         model: str,
-        result_format: str,
+        result_format: Optional[str],
         response: Generator[GenerationResponse, None, None],
         incremental_output: bool = False,
     ) -> Generator[GenerationResponse, None, None]:
@@ -124,7 +127,13 @@ class Generation(TongyiGeneration):
         cls._up_generation_observation(model, input_query, output, last_usage)
 
     @classmethod
-    def _up_error_observation(cls, input_query: Any, model: str, response: GenerationResponse, metadata: dict = None):
+    def _up_error_observation(
+        cls,
+        input_query: Any,
+        model: str,
+        response: GenerationResponse,
+        metadata: Optional[dict] = None,
+    ):
         level = "ERROR"
         err_meta = {"status_code": response.status_code, "err_code": response.code}
         if metadata:
@@ -144,11 +153,11 @@ class Generation(TongyiGeneration):
         cls,
         model: str,
         prompt: Any = None,
-        history: list = None,
-        api_key: str = None,
-        messages: List[Message] = None,
-        plugins: Union[str, Dict[str, Any]] = None,
-        workspace: str = None,
+        history: list = None,  # type: ignore
+        api_key: str = None,  # type: ignore
+        messages: List[Message] = None,  # type: ignore
+        plugins: Union[str, Dict[str, Any]] = None,  # type: ignore
+        workspace: str = None,  # type: ignore
         **kwargs,
     ) -> Union[GenerationResponse, Generator[GenerationResponse, None, None]]:
         response = super().call(model, prompt, history, api_key, messages, plugins, workspace, **kwargs)
@@ -173,7 +182,7 @@ class Generation(TongyiGeneration):
             )
 
     @classmethod
-    def generate_with_retry(cls, max_retries: int, **kwargs: Any) -> (GenerationResponse, dict):
+    def generate_with_retry(cls, max_retries: int, **kwargs: Any) -> tuple[GenerationResponse, Optional[dict]]:
         """Use tenacity to retry the completion call."""
         retry_decorator = _create_retry_decorator(max_retries)
 
@@ -209,11 +218,11 @@ class Generation(TongyiGeneration):
         cls,
         model: str,
         prompt: Any = None,
-        history: list = None,
-        api_key: str = None,
-        messages: List[Message] = None,
-        plugins: Union[str, Dict[str, Any]] = None,
-        workspace: str = None,
+        history: Optional[list] = None,
+        api_key: Optional[str] = None,
+        messages: Optional[List[Message]] = None,
+        plugins: Optional[Union[str, Dict[str, Any]]] = None,
+        workspace: Optional[str] = None,
         **kwargs,
     ) -> Union[GenerationResponse, Generator[GenerationResponse, None, None]]:
         # input
