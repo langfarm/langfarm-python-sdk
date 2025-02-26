@@ -27,7 +27,7 @@ class HookDashscopeTestCase(LangfuseSDKTestCase):
     def stream_tongyi_generation(
         self, model_name: str, query: str, result_format: str, is_inc_output: bool
     ) -> Generator[GenerationResponse, None, None]:
-        response = Generation.call(
+        response: Generator[GenerationResponse, None, None] = Generation.call(  # type: ignore
             api_key=os.getenv("DASHSCOPE_API_KEY") or "",
             model=model_name,
             prompt=query,

@@ -15,7 +15,7 @@ except ImportError:
 try:
     from langchain_core.outputs import LLMResult
 except ImportError:
-    LLMResult = None
+    raise ModuleNotFoundError("Please install langchain core to use this feature: 'pip install langchain-core'")
 
 
 def _parse_usage(response: LLMResult):  # type: ignore
@@ -36,7 +36,7 @@ def _parse_usage(response: LLMResult):  # type: ignore
 
 
 def _hook_parse_usage(func):
-    def wrapper(response: LLMResult):  # type: ignore
+    def wrapper(response: LLMResult):
         llm_usage = _parse_usage(response)
         if llm_usage is None:
             # 调用找到使用原来的函数找。
@@ -64,7 +64,7 @@ class CompatibleTongyiCallbackHandler(LangchainCallbackHandler):
     def get_usage(self):
         return self.usage
 
-    def parse_usage(self, response: LLMResult):  # type: ignore
+    def parse_usage(self, response: LLMResult):
         usage = _parse_usage(response)
         if usage is None:
             usage = langfuse_parse_usage(response)
@@ -73,7 +73,7 @@ class CompatibleTongyiCallbackHandler(LangchainCallbackHandler):
 
     def on_llm_end(
         self,
-        response: LLMResult,  # type: ignore
+        response: LLMResult,
         *,
         run_id: UUID,
         parent_run_id: Optional[UUID] = None,
